@@ -28,8 +28,8 @@ Hugging Face account with an API token
 
 ### 1. Clone the repository:
 ```console
-git clone https://github.com/your-username/my-agentic-app.git
-cd my-agentic-app
+git clone https://github.com/JMLeedom/CompanyNameAgent.git
+cd CompanyNameAgent
 ```
 
 ### 2. Create a .env file
