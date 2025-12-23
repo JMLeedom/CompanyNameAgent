@@ -1,0 +1,14 @@
+requests
+python-dotenv
+pandas
+
+markdownify
+beautifulsoup4
+duckduckgo-search
+name_matching
+
+transformers
+huggingface-hub>=0.24.0
+
+gradio>=5.0.0,<6.0.0
+smolagents[openai,transformers,audio,telemetry,toolkit]
