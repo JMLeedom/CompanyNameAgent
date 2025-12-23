@@ -1,12 +1,10 @@
-%%%%%%%%%%%%%%%%%%%%%
 # Company Name Matcher Agentic App
-%%%%%%%%%%%%%%%%%%%%%
 This is a Dockerized AI agent app built using smolagents and Gradio as well as the Qwen/Qwen2.5-Coder-32B-Instruct model from Hugging Face. The app provides an interactive AI agent accessible in your browser via Gradio.
 
 
-%------------
+
 ## Features
-%------------
+
  - Interactive AI agent with multiple tools:
 	- Company name matching
 	- Company checker
@@ -18,16 +16,16 @@ This is a Dockerized AI agent app built using smolagents and Gradio as well as t
 
 
 
-%------------
+
 ## Requirements
-%------------
+
 Docker installed
 Hugging Face account with an API token
 
 
-%------------
+
 ## Installation
-%------------
+
 ### 1. Clone the repository:
 ```console
 git clone https://github.com/your-username/my-agentic-app.git
