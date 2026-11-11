@@ -337,3 +337,5 @@ CompanyNameAgent/
 - [ ] Add continuous integration and revalidate Docker deployment
 
 ## License
+
+This project is licensed under the [MIT License](LICENSE).
