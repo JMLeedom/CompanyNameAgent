@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.venv
+.vscode
+.gradio
+**/__pycache__
+.pytest_cache
+notebooks
+screens
+data/raw
+data/processed
+data/evaluation
+*.log
+.DS_Store
