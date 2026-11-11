@@ -51,3 +51,4 @@ Thumbs.db
 
 # Internal
 /name-agent-roadmap.txt
+/scripts/smoke_test.py
