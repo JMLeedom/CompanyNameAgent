@@ -32,7 +32,7 @@ Current development focuses on evaluating retrieval performance, calibrating the
 
 ## Architecture
 
-The application separates natural-language orchestration from deterministic entity resolution.
+The application is separated into two interwoven parts:  a natural-language operation and a deterministic entity resolution portion.
 
 ```mermaid
 flowchart TD
@@ -68,20 +68,21 @@ The current provisional defaults are:
 
 | Parameter | Default | Purpose |
 |---|---:|---|
-| `match_threshold` | 85 | Minimum top score for an automatic match |
-| `possible_threshold` | 65 | Minimum score for manual review |
+| `search_match_threshold` | 91 | Minimum top score for an automatic database link |
+| `match_threshold` | 85 | Automatic-match cutoff for pairwise comparison and fallback for a policy without a search-specific cutoff |
+| `possible_match_threshold` | 65 | Minimum score for manual review |
 | `minimum_margin` | 10 | Required separation from the runner-up |
 
-The policy behaves approximately as follows:
+The search policy applies the following rules.
 
 | Condition | Decision |
 |---|---|
-| Top score below the review threshold | `NO_MATCH` |
-| Top score within the review range | `POSSIBLE_MATCH` |
-| High top score but small candidate margin | `POSSIBLE_MATCH` |
-| High top score with sufficient margin | `MATCH` |
+| Top score below 65 | `NO_MATCH` |
+| Top score at least 65 and below 91, or a top score of at least 91 with a runner-up less than 10 points behind | `POSSIBLE_MATCH` |
+| Top score of at least 91, with no runner-up or a gap of at least 10 points | `MATCH` |
 
-These values are provisional. The evaluation pipeline described below is being used to calibrate them from labeled examples rather than choosing them from a few demonstration queries.
+The calibration sweep selected the search cutoff. The review floor and margin stayed fixed at 65 and 10, and pairwise comparison kept its existing cutoff of 85.
+
 
 
 ## Example Results
@@ -147,24 +148,33 @@ This produces up to approximately 5,000 positive labeled queries. Transformation
 
 Companies are assigned to a split before corruptions are generated. Every variant of a company therefore belongs entirely to either the calibration split or the test split.
 
-- **Calibration split:** Used to select `match_threshold`, `possible_threshold`, and `minimum_margin`.
+- **Calibration split:** Used to select the automatic database-search cutoff (`search_match_threshold`). The review floor (`possible_match_threshold`) stayed fixed at 65, and the minimum runner-up margin (`minimum_margin`) stayed fixed at 10.
 - **Test split:** Kept untouched until the decision policy has been finalized.
 
 This prevents tuning the policy on one corrupted form of a company and then evaluating it on another form of the same company.
 
-### Planned metrics
+### No-match queries
 
-The evaluation will report:
+The benchmark withholds 500 SEC companies whose IDs appear in neither positive split. Their original names become no-match queries, with 400 assigned to calibration and 100 to test. The sample includes 100 lookalikes, selected by a shared two-word phrase with a company that remains in the catalog, and 400 randomly sampled negatives. The generator screens out normalized-name collisions. Both positive and no-match queries search the same reduced catalog.
 
-- Recall@1;
-- Recall@3;
-- automatic-match precision and recall;
-- false automatic-match rate;
-- manual-review rate;
-- correct-candidate coverage among `POSSIBLE_MATCH` results; and
-- performance broken down by corruption type.
+On calibration, 91 was the lowest cutoff in the sweep with false accepts below 2% across all no-match queries (7/400) and at most 5% among lookalikes (4/80).
 
-The current generated dataset contains positive matches. Easy negatives, hard negatives, and a manually reviewed challenge set will be added before final policy calibration. GLEIF Level 1 data is planned as a later international external-validation dataset; it has not yet been included in reported results.
+### Held-out search results
+
+The test set contains 1,000 positive queries and 100 no-match queries, including 20 lookalikes. On the positives, the expected company ranked first for 974 queries (**97.4% Recall@1**) and appeared in the top three for 980 (**98.0% Recall@3**). Both policies used the same ranked candidates.
+
+| Metric | Baseline (85 / 65 / 10) | Calibrated (91 / 65 / 10) |
+|---|---:|---:|
+| Correct automatic links among positive queries | 784/1,000 (78.4%) | 687/1,000 (68.7%) |
+| Wrong automatic links among positive queries | 1/1,000 (0.1%) | 1/1,000 (0.1%) |
+| Automatic-match precision | 784/790 (99.24%) | 687/690 (99.57%) |
+| False accepts among no-match queries | 5/100 (5.0%) | 2/100 (2.0%) |
+| False accepts among lookalikes | 2/20 (10.0%) | 1/20 (5.0%) |
+| Sent to manual review | 240/1,100 (21.8%) | 340/1,100 (30.9%) |
+
+The calibrated cutoff prevented three false accepts and sent 100 additional queries to review, including 97 correct links the baseline had accepted automatically. The held-out no-match false-accept rate reached 2.0%, just above the calibration target of under 2%. With 20 held-out lookalikes, each case moves that subgroup's rate by five percentage points.
+
+GLEIF Level 1 data is planned as a later international external-validation dataset; it has not yet been included in reported results.
 
 ## Testing and Quality Control
 
@@ -298,7 +308,10 @@ CompanyNameAgent/
 │   └── evaluation/
 ├── scripts/
 │   ├── process_sec_companies.py
-│   └── generate_evaluation_data.py
+│   ├── generate_evaluation_data.py
+│   ├── generate_no_match_benchmark.py
+│   ├── evaluate_matching.py
+│   └── compare_held_out_policies.py
 ├── src/
 │   └── company_name_agent/
 │       ├── matching_service.py
@@ -313,21 +326,17 @@ CompanyNameAgent/
 
 ## Current Limitations
 
-- Decision thresholds are provisional and have not yet been calibrated.
-- The current synthetic evaluation data contains positive examples but not a complete set of easy and hard negatives.
+- Calibration covers database search. Pairwise comparison still uses its original thresholds.
+- The held-out lookalike sample is small, and precision depends on the mix of positive and no-match queries.
 - The SEC dataset primarily represents publicly traded companies and is not a complete global entity registry.
 - Synthetic corruptions cannot reproduce every real-world alias or data-entry error.
 - Similarity scores are not probabilities.
 - Agent behavior currently depends on a Hugging Face inference provider.
 - Batch CSV matching and manual-review export are not implemented.
-- Docker behavior should be revalidated after the recent changes.
+
 
 ## Roadmap
 
-- [ ] Run the matcher over the generated evaluation data
-- [ ] Add easy negatives and hard negatives
-- [ ] Calibrate thresholds using the calibration split
-- [ ] Evaluate once on the held-out test split
 - [ ] Add a manually reviewed challenge set
 - [ ] Validate internationally using sampled GLEIF entities
 - [ ] Display multiple candidates in the UI

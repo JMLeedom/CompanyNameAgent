@@ -44,7 +44,10 @@ class CompanyMatchingService:
             max_candidates: int =1,
     ) -> None:
         self.company_data_path = Path(company_data_path)
-        self.policy = policy or DecisionPolicy()
+        self.policy = (
+            policy if policy is not None
+            else DecisionPolicy(search_match_threshold=91.0)
+        )
         self.max_candidates = max_candidates
 
         self.companies = self._load_companies()
