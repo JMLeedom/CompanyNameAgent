@@ -94,3 +94,15 @@ def test_candidates_are_ranked(service):
     ]
 
     assert scores == sorted(scores, reverse=True)
+
+
+def test_default_service_uses_calibrated_search_cutoff(service):
+    policy = service.policy
+
+    # A score of 90 still qualifies for a pairwise match.
+    assert policy.classify_pair(90.0)[0] == "MATCH"
+    assert policy.classify_search(90.0, 80.0)[0] == "POSSIBLE_MATCH"
+
+    # At 91, the runner-up must be at least 10 points behind.
+    assert policy.classify_search(91.0, 81.0)[0] == "MATCH"
+    assert policy.classify_search(91.0, 82.0)[0] == "POSSIBLE_MATCH"

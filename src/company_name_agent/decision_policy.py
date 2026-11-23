@@ -34,6 +34,7 @@ class DecisionPolicy:
     match_threshold: float = 85.0
     possible_match_threshold: float = 65.0
     minimum_margin:float = 10.0
+    search_match_threshold: float | None = None
 
     def classify_pair(self, score:float) -> tuple[Decision, str]:
         if score >= self.match_threshold:
@@ -69,8 +70,11 @@ class DecisionPolicy:
                 "POSSIBLE_MATCH",
                 "The leading candidates are too close to distinguish reliably"
             )
-        
-        if best_score >= self.match_threshold:
+        search_threshold = self.search_match_threshold
+        if search_threshold is None:
+            search_threshold = self.match_threshold
+
+        if best_score >= search_threshold:
             return(
                 "MATCH",
                 "The best candidate exceeds the automatic-match threshold"
@@ -90,5 +94,12 @@ class DecisionPolicy:
         if self.minimum_margin < 0:
             raise ValueError(
                 "minimum_margin cannot be negative"
+            )
+        if self.search_match_threshold is not None and not (
+            self.possible_match_threshold <= self.search_match_threshold <= 100
+        ):
+            raise ValueError(
+                    "search_match_threshold must be between "
+                    "possible_match_threshold and 100"
             )
 ########################################################
